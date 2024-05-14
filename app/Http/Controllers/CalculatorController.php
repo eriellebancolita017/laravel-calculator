@@ -10,26 +10,19 @@ class CalculatorController extends Controller
     {
         $input = $request->input('expression');
         $result = null;
-        $operator = null;
 
         // Check if the input contains a valid operator
-        if (strpos($input, '+') !== false) {
-            $operator = '+';
-        } elseif (strpos($input, '-') !== false) {
-            $operator = '-';
-        } elseif (strpos($input, '*') !== false) {
-            $operator = '*';
-        } elseif (strpos($input, '/') !== false) {
-            $operator = '/';
-        } elseif (strpos($input, 'sqrt') !== false) {
-            $operator = 'sqrt';
+        $operator = $this->getOperator($input);
+
+        if (!$operator) {
+            throw ValidationException::withMessages(['expression' => 'Invalid operator']);
         }
 
         // Perform the corresponding operation
         if ($operator === 'sqrt') {
             $number = (float) str_replace('sqrt', '', $input);
             $result = sqrt($number);
-        } elseif ($operator) {
+        } else {
             $operands = explode($operator, $input);
             $operand1 = (float) $operands[0];
             $operand2 = (float) $operands[1];
@@ -45,15 +38,30 @@ class CalculatorController extends Controller
                     $result = $operand1 * $operand2;
                     break;
                 case '/':
+                    if ($operand2 == 0) {
+                        throw ValidationException::withMessages(['expression' => 'Division by zero']);
+                    }
                     $result = $operand1 / $operand2;
                     break;
             }
-        } else {
-            $result = 'Invalid operator';
         }
 
         return response()->json([
             'result' => $result
         ]);
+    }
+
+    // function to get operator
+    private function getOperator($expression)
+    {
+        $operators = ['+', '-', '*', '/', 'sqrt'];
+
+        foreach ($operators as $operator) {
+            if (strpos($expression, $operator) !== false) {
+                return $operator;
+            }
+        }
+
+        return null;
     }
 }
